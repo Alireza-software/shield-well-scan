@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Settings — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "settings.html",
+  title: "Settings",
+  subtitle: "Workspace preferences, roles & system configuration",
+});
+
+const session = JSON.parse(localStorage.getItem("vs_session"));
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-2">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Profile</h3></div>
+      <div class="form-row"><label>Display Name</label><input value="${session.name}" /></div>
+      <div class="form-row"><label>Username</label><input value="${session.user}" disabled /></div>
+      <div class="form-row"><label>Role</label><input value="${session.role}" disabled /></div>
+      <div class="form-row"><label>Email</label><input type="email" value="${session.user}@vaccineshield.gov" /></div>
+      <button class="btn btn-primary" onclick="VS.toast('Profile updated','success')">Save Changes</button>
+    </div>
+
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Preferences</h3></div>
+      ${[
+        ["Dark Mode","Switch between light and dark UI"],
+        ["Email Notifications","Receive daily summary emails"],
+        ["SMS Alerts","Critical alerts via SMS"],
+        ["Offline Mode","Cache data locally for offline use"],
+        ["Auto-print Slips","Automatically print vaccination slips"],
+      ].map((p,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)">
+        <div><b>${p[0]}</b><br><small style="color:var(--text-muted)">${p[1]}</small></div>
+        <label style="position:relative;width:42px;height:24px;cursor:pointer">
+          <input type="checkbox" ${i%2?'checked':''} style="opacity:0;width:0;height:0" onchange="this.nextElementSibling.style.background=this.checked?'var(--primary)':'#cbd5e1';this.nextElementSibling.firstElementChild.style.left=this.checked?'20px':'2px'">
+          <span style="position:absolute;inset:0;background:${i%2?'var(--primary)':'#cbd5e1'};border-radius:999px;transition:.2s"><span style="position:absolute;top:2px;left:${i%2?'20px':'2px'};width:20px;height:20px;background:white;border-radius:50%;transition:.2s"></span></span>
+        </label>
+      </div>`).join("")}
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Role Permissions Matrix</h3></div>
+    <table class="data">
+      <thead><tr><th>Module</th><th>Health Worker</th><th>Nurse</th><th>Supervisor</th><th>Admin</th></tr></thead>
+      <tbody>
+        ${[
+          ["Patient Intake POS",1,1,1,1],
+          ["Vaccine Inventory",0,1,1,1],
+          ["Cold Chain Monitoring",1,1,1,1],
+          ["QR/Barcode Scanner",1,1,1,1],
+          ["End-of-Day Approval",0,0,1,1],
+          ["Reports & Audit",0,0,1,1],
+          ["User Management",0,0,0,1],
+        ].map(r=>`<tr><td><b>${r[0]}</b></td>${r.slice(1).map(x=>`<td>${x?'<i class="fa-solid fa-check" style="color:var(--success)"></i>':'<i class="fa-solid fa-xmark" style="color:var(--text-muted)"></i>'}</td>`).join("")}</tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Danger Zone</h3></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="if(confirm('Reset demo data?')){localStorage.clear();location.href='login.html'}"><i class="fa-solid fa-rotate"></i> Reset Demo Data</button>
+      <button class="btn btn-danger" onclick="localStorage.removeItem('vs_session');location.href='login.html'"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out</button>
+    </div>
+  </div>
+`;
+</script>
+</body>
+</html>

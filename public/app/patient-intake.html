@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Patient Intake POS — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "patient-intake.html",
+  title: "Patient Intake POS",
+  subtitle: "Register children, process doses, and generate vaccination slips",
+  actions: `<button class="btn btn-ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Slip</button>
+            <button class="btn btn-primary" onclick="document.getElementById('newPatient').scrollIntoView({behavior:'smooth'})"><i class="fa-solid fa-plus"></i> New Registration</button>`
+});
+
+const inv = VS.getInventory();
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid" style="grid-template-columns: 1.3fr 1fr; gap:18px">
+    <div class="card fade-up" id="newPatient">
+      <div class="card-title"><h3><i class="fa-solid fa-user-plus" style="color:var(--primary)"></i> Child Registration</h3><small>Required fields *</small></div>
+      <form id="regForm">
+        <div class="form-grid">
+          <div class="form-row"><label>Child Name *</label><input name="name" required /></div>
+          <div class="form-row"><label>Date of Birth *</label><input name="dob" type="date" required /></div>
+          <div class="form-row"><label>Father Name</label><input name="father" /></div>
+          <div class="form-row"><label>Mother Name</label><input name="mother" /></div>
+          <div class="form-row"><label>Guardian Contact *</label><input name="contact" placeholder="03xx-xxxxxxx" required /></div>
+          <div class="form-row"><label>Gender</label>
+            <select name="gender"><option>Male</option><option>Female</option><option>Other</option></select>
+          </div>
+          <div class="form-row"><label>District</label>
+            <select name="district"><option>Karachi East</option><option>Lahore</option><option>Islamabad</option><option>Peshawar</option><option>Quetta</option></select>
+          </div>
+          <div class="form-row"><label>Union Council</label><input name="uc" placeholder="UC-12" /></div>
+        </div>
+        <div class="form-row"><label>Address</label><textarea name="address" rows="2"></textarea></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button type="reset" class="btn btn-outline">Clear</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Register Patient</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3><i class="fa-solid fa-magnifying-glass" style="color:var(--primary)"></i> Quick Check-In</h3></div>
+      <div class="form-row"><label>Search by Name or ID</label>
+        <input id="patientSearch" placeholder="Type to search…" />
+      </div>
+      <div id="searchResults" style="max-height:280px;overflow:auto"></div>
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px" id="dosePanel" hidden>
+    <div class="card-title"><h3><i class="fa-solid fa-syringe" style="color:var(--primary)"></i> Process Vaccination</h3><small id="selectedPatient"></small></div>
+    <div class="grid grid-2">
+      <div>
+        <div class="form-row"><label>Select Vaccine *</label>
+          <select id="vaccineSel">${inv.map(v=>`<option value="${v.code}">${v.name} — ${v.batch}</option>`).join("")}</select>
+        </div>
+        <div class="form-row"><label>Dose Number</label>
+          <select id="doseNo"><option>1st</option><option>2nd</option><option>3rd</option><option>Booster</option></select>
+        </div>
+        <div class="form-row"><label>Next Appointment</label><input id="nextAppt" type="date" /></div>
+        <div class="form-row"><label>Notes</label><textarea rows="2" id="notes" placeholder="Any observations…"></textarea></div>
+        <button class="btn btn-primary" id="administer"><i class="fa-solid fa-check-double"></i> Administer & Print Slip</button>
+      </div>
+      <div>
+        <div style="padding:16px;border:1px dashed var(--border);border-radius:12px;background:var(--surface-2)">
+          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.06em">Vaccination History</div>
+          <div id="historyList" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Registered Patients</h3><small id="totalPatients"></small></div>
+    <div style="overflow:auto">
+      <table class="data">
+        <thead><tr><th>ID</th><th>Name</th><th>DOB</th><th>Guardian</th><th>District</th><th>Doses</th><th></th></tr></thead>
+        <tbody id="patientsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+let selected = null;
+
+function renderPatients(filter="") {
+  const all = VS.getPatients();
+  const list = all.filter(p => !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || p.id.toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById("totalPatients").textContent = `${all.length} total · ${list.length} shown`;
+  document.getElementById("patientsTbody").innerHTML = list.map(p=>`
+    <tr>
+      <td><b>${p.id}</b></td><td>${p.name}</td><td>${p.dob}</td><td>${p.contact}</td><td>${p.district}</td>
+      <td><span class="badge blue">${p.doses.length} doses</span></td>
+      <td><button class="btn btn-ghost" style="padding:6px 10px;font-size:12px" onclick="selectPatient('${p.id}')"><i class="fa-solid fa-syringe"></i> Process</button></td>
+    </tr>`).join("");
+}
+
+function renderSearch(q) {
+  if (!q) { document.getElementById("searchResults").innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px"><i class="fa-solid fa-user-magnifying-glass" style="font-size:32px;opacity:.4;display:block;margin-bottom:8px"></i>Search for a registered patient</div>'; return; }
+  const res = VS.getPatients().filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.id.includes(q));
+  document.getElementById("searchResults").innerHTML = res.length ? res.map(p=>`
+    <div onclick="selectPatient('${p.id}')" style="padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div><b>${p.name}</b> <span style="color:var(--text-muted);font-size:12px">· ${p.id}</span><br><small style="color:var(--text-muted)">${p.district} · DOB ${p.dob}</small></div>
+      <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+    </div>`).join("") : '<div style="padding:20px;text-align:center;color:var(--text-muted)">No matches</div>';
+}
+
+window.selectPatient = function(id) {
+  const p = VS.getPatients().find(x => x.id === id);
+  if (!p) return;
+  selected = p;
+  document.getElementById("dosePanel").hidden = false;
+  document.getElementById("selectedPatient").textContent = `${p.name} · ${p.id} · ${p.district}`;
+  document.getElementById("historyList").innerHTML = p.doses.length
+    ? p.doses.map((d,i)=>`<div style="padding:8px 10px;background:var(--surface);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;font-size:13px"><span><b>${d}</b> · Dose ${i+1}</span><span class="badge green">Done</span></div>`).join("")
+    : '<div style="color:var(--text-muted);font-size:13px">No doses yet</div>';
+  document.getElementById("dosePanel").scrollIntoView({behavior:"smooth"});
+};
+
+document.getElementById("patientSearch").oninput = (e) => renderSearch(e.target.value);
+
+document.getElementById("regForm").onsubmit = (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const list = VS.getPatients();
+  const id = "VS-" + (1000 + list.length + 1);
+  const p = { id, doses: [], ...Object.fromEntries(fd.entries()) };
+  list.unshift(p);
+  VS.savePatients(list);
+  VS.logActivity(`New patient registered: ${p.name} (${id})`, "success");
+  VS.toast("Patient registered successfully", "success");
+  e.target.reset();
+  renderPatients();
+};
+
+document.getElementById("administer").onclick = () => {
+  if (!selected) return;
+  const vcode = document.getElementById("vaccineSel").value;
+  const vac = inv.find(v=>v.code===vcode);
+  const list = VS.getPatients();
+  const p = list.find(x=>x.id===selected.id);
+  p.doses.push(vac.code);
+  VS.savePatients(list);
+  // decrement stock
+  const stock = VS.getInventory();
+  const s = stock.find(v=>v.code===vcode); if (s) s.qty -= 1;
+  VS.saveInventory(stock);
+  VS.logActivity(`Administered ${vac.name} to ${p.name} (${p.id})`, "success");
+  VS.toast(`${vac.name} administered — slip ready`, "success");
+  selectPatient(p.id);
+  renderPatients();
+};
+
+renderPatients(); renderSearch("");
+</script>
+</body>
+</html>

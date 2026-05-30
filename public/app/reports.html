@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reports & Audit — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "reports.html",
+  title: "Reports & Audit Center",
+  subtitle: "Operational and public-health reporting",
+  actions: `<button class="btn btn-ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+            <button class="btn btn-primary" onclick="VS.toast('PDF export started','info')"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>`
+});
+
+const reports = [
+  { cat:"Operational", name:"Daily Operations Report", desc:"Vaccinations, registrations, staff activity", ic:"fa-calendar-day", color:"#2563eb" },
+  { cat:"Operational", name:"Weekly Summary", desc:"7-day rollup across all centers", ic:"fa-calendar-week", color:"#2563eb" },
+  { cat:"Operational", name:"Monthly Report", desc:"Comprehensive monthly metrics", ic:"fa-calendar", color:"#2563eb" },
+  { cat:"Operational", name:"Quarterly Report", desc:"Strategic quarterly review", ic:"fa-chart-pie", color:"#2563eb" },
+  { cat:"Public Health", name:"Disease Coverage Report", desc:"Coverage % across 12 VPDs", ic:"fa-shield-virus", color:"#10b981" },
+  { cat:"Public Health", name:"Vaccination Compliance", desc:"On-schedule rates by district", ic:"fa-check-double", color:"#10b981" },
+  { cat:"Public Health", name:"Stock Usage Report", desc:"Vaccine consumption analysis", ic:"fa-boxes-stacked", color:"#f59e0b" },
+  { cat:"Public Health", name:"Cold Chain Report", desc:"Temperature compliance log", ic:"fa-temperature-low", color:"#ef4444" },
+];
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-2">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Coverage by Disease (YTD)</h3></div>
+      <div class="chart-wrap"><canvas id="rChart1"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Vaccinations vs Target</h3></div>
+      <div class="chart-wrap"><canvas id="rChart2"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Generate Reports</h3><small>Click to preview and export</small></div>
+    <div class="grid grid-4">
+      ${reports.map(r=>`
+        <div class="card" style="cursor:pointer;transition:all .2s" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'" onclick="VS.toast('Generating ${r.name}…','info')">
+          <div style="width:44px;height:44px;border-radius:12px;background:${r.color}20;color:${r.color};display:grid;place-items:center;font-size:18px;margin-bottom:10px"><i class="fa-solid ${r.ic}"></i></div>
+          <small style="color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:.06em">${r.cat}</small>
+          <div style="font-weight:600;margin:4px 0">${r.name}</div>
+          <small style="color:var(--text-muted)">${r.desc}</small>
+          <div style="display:flex;gap:6px;margin-top:12px">
+            <span class="badge blue" style="font-size:10px"><i class="fa-solid fa-file-pdf"></i> PDF</span>
+            <span class="badge green" style="font-size:10px"><i class="fa-solid fa-file-excel"></i> XLSX</span>
+          </div>
+        </div>`).join("")}
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Audit Trail</h3><small>Last 24 hours</small></div>
+    <table class="data">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Module</th><th>Status</th></tr></thead>
+      <tbody>
+        ${VS.getActivity().slice(0,10).map((a,i)=>`<tr>
+          <td>${VS.fmtTime(a.time)}</td>
+          <td>${["Dr. Khan","Nurse Sara","Hassan Raza","Dr. Sheikh"][i%4]}</td>
+          <td>${a.text}</td>
+          <td><span class="badge gray">${["POS","Inventory","Cold Chain","Reports"][i%4]}</span></td>
+          <td><span class="badge ${a.type==='success'?'green':a.type==='warn'?'amber':a.type==='danger'?'red':'blue'}">${a.type}</span></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+`;
+
+new Chart(rChart1, { type:"radar", data:{
+  labels: VS.DISEASES,
+  datasets:[{ label:"Coverage %", data:[98,96,94,95,93,91,97,92,89,88,86,90], backgroundColor:"rgba(37,99,235,.2)", borderColor:"#2563eb", borderWidth:2 }]
+}, options:{ plugins:{legend:{display:false}}, scales:{r:{beginAtZero:true,max:100,ticks:{display:false}}}}});
+
+new Chart(rChart2, { type:"bar", data:{
+  labels:["Jan","Feb","Mar","Apr","May","Jun"],
+  datasets:[
+    {label:"Target", data:[26000,26000,26000,26000,26000,26000], backgroundColor:"#e2e8f0", borderRadius:6},
+    {label:"Actual", data:[20100,21200,23000,24800,25600,26400], backgroundColor:"#2563eb", borderRadius:6}
+  ]
+}, options:{ plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true,grid:{color:"rgba(148,163,184,.15)"}},x:{grid:{display:false}}}}});
+</script>
+</body>
+</html>

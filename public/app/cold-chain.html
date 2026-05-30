@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cold Chain — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "cold-chain.html",
+  title: "Cold Chain Monitoring",
+  subtitle: "Real-time refrigeration & storage compliance · WHO target 2–8°C",
+});
+
+const units = [
+  { id:1, name:"Main Lab Refrigerator", temp:4.1, location:"HQ — Karachi" },
+  { id:2, name:"District A Storage", temp:3.8, location:"Lahore" },
+  { id:3, name:"District B Storage", temp:7.2, location:"Peshawar" },
+  { id:4, name:"Mobile Unit Cooler", temp:9.1, location:"Field Truck #2" },
+];
+function status(t) { return t>=2&&t<=8 ? ["green","Safe"] : (t<2||t>10) ? ["red","Critical"] : ["amber","Warning"]; }
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-4">
+    ${units.map(u=>{
+      const [c,l] = status(u.temp);
+      return `<div class="card fade-up">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-family:Poppins;font-weight:700;font-size:15px">${u.name}</div><small style="color:var(--text-muted)">${u.location}</small></div>
+          <span class="badge ${c}">${l}</span>
+        </div>
+        <div style="text-align:center;margin:20px 0">
+          <div style="font-family:Poppins;font-size:48px;font-weight:800;color:${c==='green'?'#10b981':c==='amber'?'#f59e0b':'#ef4444'}">${u.temp}°C</div>
+          <div style="font-size:12px;color:var(--text-muted)">Target 2 – 8°C</div>
+        </div>
+        <div class="progress ${c}"><span style="width:${Math.min(100,((u.temp-0)/15)*100)}%"></span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px"><span>0°C</span><span>15°C</span></div>
+      </div>`;
+    }).join("")}
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>24-Hour Temperature History</h3><small>All units</small></div>
+      <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Recent Alerts</h3><span class="badge red">3 active</span></div>
+      ${[
+        {t:"Critical: Mobile Unit #2 above 9°C",time:"5m ago",type:"danger",ic:"fa-temperature-high"},
+        {t:"Warning: District B nearing upper limit (7.2°C)",time:"38m ago",type:"warn",ic:"fa-exclamation"},
+        {t:"Resolved: Main Lab door alert closed",time:"1h ago",type:"success",ic:"fa-check"},
+        {t:"Power restored at District A",time:"3h ago",type:"info",ic:"fa-bolt"},
+      ].map(a=>{
+        const map={success:"green",danger:"red",warn:"amber",info:"blue"};
+        return `<div class="activity">
+          <div class="dot" style="background:var(--surface-2)"><i class="fa-solid ${a.ic}" style="color:var(--${a.type==='danger'?'danger':a.type==='warn'?'warning':a.type==='success'?'success':'primary'})"></i></div>
+          <div style="flex:1"><p>${a.t}</p><small>${a.time}</small></div>
+          <span class="badge ${map[a.type]}">${a.type}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>
+`;
+
+const hours = Array.from({length:24},(_,i)=>`${i}:00`);
+new Chart(tempChart, { type:"line", data:{ labels: hours, datasets: units.map((u,i)=>({
+  label: u.name, data: hours.map(()=> +(u.temp + (Math.random()*1.6-0.8)).toFixed(1)),
+  borderColor: ["#2563eb","#10b981","#f59e0b","#ef4444"][i], tension:.4, fill:false
+}))}, options:{ plugins:{legend:{position:'bottom'}}, scales:{ y:{ min:0, max:12, grid:{color:"rgba(148,163,184,.15)"}, ticks:{callback:v=>v+"°C"} }, x:{grid:{display:false}}}}});
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "dashboard.html",
+  title: "Executive Dashboard",
+  subtitle: "Live operational overview across all immunization centers",
+  actions: `<button class="btn btn-ghost"><i class="fa-solid fa-calendar"></i> Today</button>
+            <button class="btn btn-primary"><i class="fa-solid fa-file-arrow-down"></i> Export</button>`
+});
+
+const stats = [
+  { ic: "blue",  i: "fa-children", label: "Registered Children", value: "184,520", trend: "+2.4% this week", up: true },
+  { ic: "green", i: "fa-shield-heart", label: "Fully Vaccinated", value: "168,932", trend: "91.5% coverage", up: true },
+  { ic: "amber", i: "fa-hourglass-half", label: "Pending Doses", value: "12,418", trend: "-3.1% vs last week", up: true },
+  { ic: "purple",i: "fa-boxes-stacked", label: "Vaccine Stock", value: "48,206", trend: "8 batches low", up: false },
+  { ic: "red",   i: "fa-triangle-exclamation", label: "Expired Batches", value: "14", trend: "Action required", up: false },
+  { ic: "blue",  i: "fa-syringe", label: "Today's Vaccinations", value: "842", trend: "+18% vs avg", up: true },
+  { ic: "green", i: "fa-chart-line", label: "Monthly Doses", value: "24,118", trend: "Target: 26,000", up: true },
+  { ic: "purple",i: "fa-percent", label: "Coverage Rate", value: "96.4%", trend: "+1.2 pts", up: true },
+];
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-4">
+    ${stats.map((s,i)=>`
+      <div class="stat fade-up delay-${(i%4)+1}">
+        <div class="ic ${s.ic}"><i class="fa-solid ${s.i}"></i></div>
+        <div>
+          <div class="label">${s.label}</div>
+          <div class="value">${s.value}</div>
+          <div class="trend ${s.up?'up':'down'}">${s.up?'▲':'▼'} ${s.trend}</div>
+        </div>
+      </div>`).join("")}
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Disease Coverage</h3><small>12 VPDs · last 30 days</small></div>
+      <div class="chart-wrap"><canvas id="cov"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Monthly Vaccination Trend</h3><small>Doses administered</small></div>
+      <div class="chart-wrap"><canvas id="trend"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Vaccine Usage</h3><small>By type</small></div>
+      <div class="chart-wrap"><canvas id="usage"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1" style="grid-column: span 2">
+      <div class="card-title"><h3>District Performance</h3><small>Coverage by district</small></div>
+      <div class="chart-wrap"><canvas id="district"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:18px">
+    <div class="card fade-up" style="grid-column: span 2">
+      <div class="card-title"><h3>Recent Activity</h3><a href="reports.html" style="font-size:12px">View all →</a></div>
+      <div id="activityFeed"></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Cold Chain Status</h3><small>4 units</small></div>
+      ${["Unit #1 – Main Lab","Unit #2 – District A","Unit #3 – District B","Unit #4 – Mobile"].map((n,i)=>{
+        const temps=[4.1,3.8,7.2,4.5][i]; const ok=temps>=2&&temps<=8;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div><div style="font-weight:600;font-size:13px">${n}</div><small style="color:var(--text-muted)">Target 2–8°C</small></div>
+          <div style="text-align:right"><div style="font-family:Poppins;font-weight:700">${temps}°C</div>
+          <span class="badge ${ok?'green':'amber'}">${ok?'Safe':'Warning'}</span></div>
+        </div>`}).join("")}
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Upcoming Vaccination Alerts</h3><small>Next 7 days</small></div>
+      <div>
+        ${[
+          {n:"Ayaan Khan",v:"PENTA - Dose 2",d:"Tomorrow, 10:00 AM"},
+          {n:"Zara Ali",v:"OPV - Booster",d:"Mon, 3 Jun, 11:30 AM"},
+          {n:"Hamza Iqbal",v:"BCG",d:"Tue, 4 Jun, 09:00 AM"},
+          {n:"Maryam Sheikh",v:"MR",d:"Wed, 5 Jun, 02:00 PM"},
+        ].map(x=>`<div class="activity"><div class="dot" style="background:#dbeafe;color:#1d4ed8"><i class="fa-solid fa-syringe"></i></div>
+          <div style="flex:1"><p><b>${x.n}</b> — ${x.v}</p><small>${x.d}</small></div>
+          <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px">Notify</button></div>`).join("")}
+      </div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Low Stock Warnings</h3><a href="inventory.html" style="font-size:12px">Manage →</a></div>
+      ${VS.getInventory().filter(v=>v.qty<300).map(v=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between"><b>${v.name}</b><span class="badge ${v.qty<100?'red':'amber'}">${v.qty} units</span></div>
+          <small style="color:var(--text-muted)">Batch ${v.batch}</small>
+          <div class="progress ${v.qty<100?'red':'amber'}" style="margin-top:6px"><span style="width:${Math.min(100,(v.qty/500)*100)}%"></span></div>
+        </div>`).join("")}
+    </div>
+  </div>
+`;
+
+// Activity feed
+document.getElementById("activityFeed").innerHTML = VS.getActivity().slice(0,6).map(a=>{
+  const map={success:["#d1fae5","#047857","fa-check"],warn:["#fef3c7","#b45309","fa-exclamation"],danger:["#fee2e2","#b91c1c","fa-xmark"],info:["#dbeafe","#1d4ed8","fa-circle-info"]};
+  const [bg,fg,ic]=map[a.type]||map.info;
+  return `<div class="activity"><div class="dot" style="background:${bg};color:${fg}"><i class="fa-solid ${ic}"></i></div>
+    <div style="flex:1"><p>${a.text}</p><small>${VS.fmtTime(a.time)}</small></div></div>`;
+}).join("");
+
+// Charts
+const gridColor = "rgba(148,163,184,.15)";
+new Chart(cov, { type: "bar", data: {
+  labels: VS.DISEASES,
+  datasets: [{ label: "Coverage %", data: [98,96,94,95,93,91,97,92,89,88,86,90], backgroundColor:"#2563eb", borderRadius:6 }]
+}, options:{ plugins:{legend:{display:false}}, scales:{ y:{grid:{color:gridColor}, beginAtZero:true,max:100}, x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+
+new Chart(trend, { type:"line", data:{
+  labels:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  datasets:[
+    { label:"2024", data:[18000,19500,21000,22400,23100,24500,25200,26100,25800,27000,27800,28200], borderColor:"#94a3b8", tension:.4, fill:false },
+    { label:"2025", data:[20100,21200,23000,24800,25600,26400,27200,28100,29000,30200,31000,31800], borderColor:"#2563eb", backgroundColor:"rgba(37,99,235,.1)", tension:.4, fill:true }
+  ]
+}, options:{ plugins:{legend:{position:'bottom'}}, scales:{y:{grid:{color:gridColor}}, x:{grid:{display:false}}}}});
+
+new Chart(usage, { type:"doughnut", data:{
+  labels:["OPV","PENTA","BCG","MR","PCV","Others"],
+  datasets:[{ data:[28,22,15,14,12,9], backgroundColor:["#2563eb","#10b981","#f59e0b","#7c3aed","#ef4444","#64748b"], borderWidth:0 }]
+}, options:{ plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}}, cutout:'65%'}});
+
+new Chart(district, { type:"bar", data:{
+  labels:["Karachi","Lahore","Islamabad","Peshawar","Quetta","Multan","Faisalabad","Hyderabad"],
+  datasets:[
+    {label:"Target", data:[100,100,100,100,100,100,100,100], backgroundColor:"#e2e8f0", borderRadius:6},
+    {label:"Achieved", data:[96,94,98,87,82,91,93,89], backgroundColor:"#10b981", borderRadius:6}
+  ]
+}, options:{ plugins:{legend:{position:'bottom'}}, scales:{y:{grid:{color:gridColor},beginAtZero:true,max:100}, x:{grid:{display:false}}}}});
+</script>
+</body>
+</html>

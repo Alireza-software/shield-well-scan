@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notifications — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "notifications.html",
+  title: "Notifications Center",
+  subtitle: "SMS, Email & WhatsApp campaigns and reminders",
+});
+
+const templates = [
+  { id:"upcoming", name:"Upcoming Vaccination Reminder", body:"Dear {{guardian}}, your child {{child}} is due for {{vaccine}} on {{date}}. Visit your nearest center." },
+  { id:"missed",   name:"Missed Dose Reminder", body:"Reminder: {{child}} missed the {{vaccine}} dose. Please schedule a visit." },
+  { id:"followup", name:"Follow-Up Appointment", body:"Hello {{guardian}}, please bring {{child}} for follow-up on {{date}}." },
+  { id:"campaign", name:"Campaign Notification", body:"Free immunization campaign in your area on {{date}}. Bring your child to {{center}}." },
+];
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-4">
+    <div class="stat fade-up"><div class="ic blue"><i class="fa-solid fa-paper-plane"></i></div>
+      <div><div class="label">Sent Today</div><div class="value">1,284</div><div class="trend up">+12%</div></div></div>
+    <div class="stat fade-up delay-1"><div class="ic green"><i class="fa-solid fa-check"></i></div>
+      <div><div class="label">Delivered</div><div class="value">1,201</div><div class="trend up">93.5%</div></div></div>
+    <div class="stat fade-up delay-2"><div class="ic amber"><i class="fa-solid fa-clock"></i></div>
+      <div><div class="label">In Queue</div><div class="value">68</div><div class="trend">Processing</div></div></div>
+    <div class="stat fade-up delay-3"><div class="ic red"><i class="fa-solid fa-xmark"></i></div>
+      <div><div class="label">Failed</div><div class="value">15</div><div class="trend down">1.2%</div></div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Compose Message</h3></div>
+      <div class="form-row"><label>Channel</label>
+        <div style="display:flex;gap:8px">
+          <label style="flex:1;padding:10px;border:2px solid var(--primary);border-radius:10px;text-align:center;cursor:pointer;background:var(--primary-light);color:var(--primary);font-weight:600"><input type="radio" name="ch" checked hidden><i class="fa-solid fa-comment-sms"></i> SMS</label>
+          <label style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer"><input type="radio" name="ch" hidden><i class="fa-solid fa-envelope"></i> Email</label>
+          <label style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer"><input type="radio" name="ch" hidden><i class="fa-brands fa-whatsapp"></i> WhatsApp</label>
+        </div>
+      </div>
+      <div class="form-row"><label>Template</label>
+        <select id="tpl">${templates.map(t=>`<option value="${t.id}">${t.name}</option>`).join("")}</select>
+      </div>
+      <div class="form-row"><label>Recipients</label>
+        <select><option>All guardians with pending doses (842)</option><option>Karachi East (218)</option><option>Lahore (164)</option><option>Custom list…</option></select>
+      </div>
+      <div class="form-row"><label>Message Preview</label>
+        <textarea id="msgBody" rows="5"></textarea>
+      </div>
+      <button class="btn btn-primary" id="sendBtn"><i class="fa-solid fa-paper-plane"></i> Send Campaign</button>
+    </div>
+
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Send Queue & Delivery Status</h3></div>
+      <table class="data">
+        <thead><tr><th>Channel</th><th>Recipient</th><th>Template</th><th>Status</th></tr></thead>
+        <tbody>
+          ${[
+            ["fa-comment-sms","#2563eb","Bilal Khan","Upcoming Reminder","green","Delivered"],
+            ["fa-envelope","#7c3aed","Hina Khan","Follow-Up","green","Delivered"],
+            ["fa-brands fa-whatsapp","#10b981","Tariq Ali","Campaign","amber","Queued"],
+            ["fa-comment-sms","#2563eb","Mehreen Ali","Missed Dose","green","Delivered"],
+            ["fa-envelope","#7c3aed","Imran Iqbal","Upcoming Reminder","red","Failed"],
+            ["fa-comment-sms","#2563eb","Nadia Iqbal","Campaign","green","Delivered"],
+          ].map(r=>`<tr><td><i class="fa-solid ${r[0]}" style="color:${r[1]}"></i></td><td>${r[2]}</td><td>${r[3]}</td><td><span class="badge ${r[4]}">${r[5]}</span></td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+const sel = document.getElementById("tpl"), body = document.getElementById("msgBody");
+function load() { body.value = templates.find(t=>t.id===sel.value).body; }
+sel.onchange = load; load();
+document.getElementById("sendBtn").onclick = () => { VS.toast("Campaign queued — 842 recipients", "success"); VS.logActivity("SMS campaign queued (842 recipients)", "info"); };
+</script>
+</body>
+</html>

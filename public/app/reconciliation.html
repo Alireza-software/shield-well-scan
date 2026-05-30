@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>End of Day — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "reconciliation.html",
+  title: "End of Day Reconciliation",
+  subtitle: "Shift closing, physical count and variance reporting",
+});
+
+const inv = VS.getInventory();
+const today = new Date().toLocaleDateString();
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="notice" style="margin-bottom:18px"><b>Shift:</b> Morning · 08:00 – 17:00 &nbsp; · &nbsp; <b>Date:</b> ${today} &nbsp; · &nbsp; <b>Center:</b> Main Lab — Karachi</div>
+
+  <div class="grid grid-4">
+    <div class="stat fade-up"><div class="ic blue"><i class="fa-solid fa-door-open"></i></div>
+      <div><div class="label">Opening Stock</div><div class="value">${(inv.reduce((s,v)=>s+v.qty,0)+842).toLocaleString()}</div></div></div>
+    <div class="stat fade-up delay-1"><div class="ic green"><i class="fa-solid fa-syringe"></i></div>
+      <div><div class="label">Administered</div><div class="value">842</div></div></div>
+    <div class="stat fade-up delay-2"><div class="ic amber"><i class="fa-solid fa-boxes-stacked"></i></div>
+      <div><div class="label">Remaining Stock</div><div class="value">${inv.reduce((s,v)=>s+v.qty,0).toLocaleString()}</div></div></div>
+    <div class="stat fade-up delay-3"><div class="ic red"><i class="fa-solid fa-scale-balanced"></i></div>
+      <div><div class="label">Variance</div><div class="value">0</div><div class="trend up">Balanced</div></div></div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Physical Count Reconciliation</h3></div>
+    <table class="data">
+      <thead><tr><th>Vaccine</th><th>Batch</th><th>System Count</th><th>Physical Count</th><th>Variance</th><th>Status</th></tr></thead>
+      <tbody>
+        ${inv.map((v,i)=>{
+          const phys = v.qty - (i===2?2:0);
+          const diff = phys - v.qty;
+          return `<tr><td><b>${v.name}</b></td><td>${v.batch}</td><td>${v.qty}</td>
+            <td><input type="number" value="${phys}" style="width:90px;padding:6px 8px;border:1px solid var(--border);border-radius:6px"/></td>
+            <td><b style="color:${diff===0?'var(--success)':'var(--danger)'}">${diff>0?'+':''}${diff}</b></td>
+            <td><span class="badge ${diff===0?'green':'red'}">${diff===0?'OK':'Variance'}</span></td></tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Staff Activity Summary</h3></div>
+      ${[
+        ["Dr. Khan","Administered 218 doses","218"],
+        ["Nurse Sara","Administered 184 doses","184"],
+        ["Hassan Raza","Registrations: 42","42"],
+        ["Dr. Sheikh","Approvals: 18","18"],
+      ].map(s=>`<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div><b>${s[0]}</b><br><small style="color:var(--text-muted)">${s[1]}</small></div>
+        <span class="badge blue">${s[2]}</span>
+      </div>`).join("")}
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Sign-Off & Approval</h3></div>
+      <div class="form-row"><label>Notes</label><textarea rows="3" placeholder="Any discrepancies, observations…"></textarea></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Operator Signature</label><input value="Dr. Khan" /></div>
+        <div class="form-row"><label>Supervisor Approval</label><input placeholder="Pending…" /></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-outline" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Report</button>
+        <button class="btn btn-primary" onclick="submitEod()"><i class="fa-solid fa-check-double"></i> Submit & Close Shift</button>
+      </div>
+    </div>
+  </div>
+`;
+
+window.submitEod = () => {
+  VS.logActivity(`EOD reconciliation submitted by ${JSON.parse(localStorage.getItem('vs_session')).name}`, "success");
+  VS.toast("End-of-day report submitted for approval", "success");
+};
+</script>
+</body>
+</html>

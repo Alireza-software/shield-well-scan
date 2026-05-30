@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Field Feedback — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "testimonials.html",
+  title: "Field Feedback & Testimonials",
+  subtitle: "Voices from health workers, nurses, and supervisors",
+});
+
+const reviews = [
+  { name:"Dr. Sara Ahmad", role:"Senior Nurse · Lahore", stars:5, text:"VaccineShield transformed how we register children. The POS-style intake is incredibly fast.", color:"#2563eb" },
+  { name:"Hassan Raza", role:"Health Worker · Karachi", stars:5, text:"Cold-chain alerts saved an entire batch last week. Real-time monitoring is a game changer.", color:"#10b981" },
+  { name:"Dr. Imran Sheikh", role:"District Supervisor", stars:4, text:"Reports & analytics make our weekly reviews 10x easier. Great audit trail.", color:"#7c3aed" },
+  { name:"Aisha Malik", role:"Nurse · Peshawar", stars:5, text:"QR scanning eliminated wrong-batch errors entirely. The team trusts the system.", color:"#f59e0b" },
+  { name:"Faisal Khan", role:"Field Coordinator", stars:5, text:"The campaign SMS module reaches families we used to miss. Coverage is up 12%.", color:"#ef4444" },
+];
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-4">
+    <div class="stat fade-up"><div class="ic amber"><i class="fa-solid fa-star"></i></div>
+      <div><div class="label">Average Rating</div><div class="value">4.8 / 5</div><div class="trend up">+0.2</div></div></div>
+    <div class="stat fade-up delay-1"><div class="ic green"><i class="fa-solid fa-thumbs-up"></i></div>
+      <div><div class="label">Satisfaction</div><div class="value">94%</div><div class="trend up">Q3</div></div></div>
+    <div class="stat fade-up delay-2"><div class="ic blue"><i class="fa-solid fa-comments"></i></div>
+      <div><div class="label">Total Reviews</div><div class="value">1,284</div><div class="trend up">+186</div></div></div>
+    <div class="stat fade-up delay-3"><div class="ic purple"><i class="fa-solid fa-lightbulb"></i></div>
+      <div><div class="label">Suggestions</div><div class="value">142</div><div class="trend">Under review</div></div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up" style="grid-column:span 1">
+      <div class="card-title"><h3>Rating Distribution</h3></div>
+      <div class="chart-wrap"><canvas id="ratingChart"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Submit Feedback</h3></div>
+      <div class="form-row"><label>Rating</label>
+        <div id="stars" style="font-size:28px;color:#f59e0b;cursor:pointer">
+          <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+        </div>
+      </div>
+      <div class="form-row"><label>Your Feedback</label><textarea rows="4" placeholder="Share your experience…"></textarea></div>
+      <button class="btn btn-primary" onclick="VS.toast('Thank you for your feedback!', 'success')"><i class="fa-solid fa-paper-plane"></i> Submit</button>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:18px">
+    ${reviews.map((r,i)=>`<div class="card fade-up delay-${(i%4)+1}">
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:${r.color};color:white;display:grid;place-items:center;font-weight:700">${r.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+        <div><div style="font-weight:600">${r.name}</div><small style="color:var(--text-muted)">${r.role}</small></div>
+      </div>
+      <div style="color:#f59e0b;margin-bottom:8px">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div>
+      <p style="color:var(--text-muted);font-size:14px;line-height:1.6">"${r.text}"</p>
+    </div>`).join("")}
+  </div>
+`;
+
+new Chart(ratingChart, { type:"bar", data:{
+  labels:["5 ★","4 ★","3 ★","2 ★","1 ★"],
+  datasets:[{ data:[842,318,84,28,12], backgroundColor:["#10b981","#34d399","#f59e0b","#fb923c","#ef4444"], borderRadius:6 }]
+}, options:{ indexAxis:"y", plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,grid:{color:"rgba(148,163,184,.15)"}},y:{grid:{display:false}}}}});
+</script>
+</body>
+</html>
