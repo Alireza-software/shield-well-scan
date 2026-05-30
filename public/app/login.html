@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+<div class="auth-wrap">
+  <section class="auth-side">
+    <div class="brand-lg">
+      <div class="logo"><i class="fa-solid fa-shield-virus"></i></div>
+      <div>
+        <div style="font-family:Poppins;font-size:22px;font-weight:700">VaccineShield <span style="color:#60a5fa">Pro</span></div>
+        <div style="color:#94a3b8;font-size:12px;letter-spacing:.05em;text-transform:uppercase">Smart Immunization Platform</div>
+      </div>
+    </div>
+    <div>
+      <h2>Protecting communities, <span>one dose at a time.</span></h2>
+      <p class="tag">An enterprise-grade vaccine management, cold-chain, and POS platform combating 12 vaccine-preventable diseases across districts.</p>
+      <div class="feature-pills">
+        <span><i class="fa-solid fa-syringe"></i> Vaccination POS</span>
+        <span><i class="fa-solid fa-temperature-low"></i> Cold Chain</span>
+        <span><i class="fa-solid fa-boxes-stacked"></i> Inventory</span>
+        <span><i class="fa-solid fa-qrcode"></i> QR/Barcode</span>
+        <span><i class="fa-solid fa-chart-line"></i> Analytics</span>
+      </div>
+    </div>
+    <div class="stats-mini">
+      <div><b>184K+</b><small>Children Registered</small></div>
+      <div><b>96.4%</b><small>Coverage Rate</small></div>
+      <div><b>12</b><small>Diseases Targeted</small></div>
+    </div>
+  </section>
+  <section class="auth-form">
+    <div class="box fade-up">
+      <h3>Welcome back</h3>
+      <p class="sub">Sign in to your VaccineShield workstation</p>
+      <div class="role-tabs" id="roleTabs">
+        <button data-role="Health Worker" class="active">Health Worker</button>
+        <button data-role="Nurse">Nurse</button>
+        <button data-role="Supervisor">Supervisor</button>
+        <button data-role="Administrator">Admin</button>
+      </div>
+      <form id="loginForm">
+        <div class="form-row">
+          <label>Username</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-user"></i>
+            <input id="user" required value="dr.khan" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input id="pass" type="password" required value="vaccine123" />
+            <i class="fa-solid fa-eye toggle" id="togglePass"></i>
+          </div>
+        </div>
+        <div class="remember">
+          <label><input type="checkbox" id="remember" checked /> Remember me</label>
+          <a href="#" id="forgot">Forgot password?</a>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign in</button>
+      </form>
+      <div style="margin-top:18px;padding:12px;background:var(--surface-2);border-radius:10px;font-size:12px;color:var(--text-muted)">
+        <b>Demo:</b> any username + password works. Pick a role above.
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+  const tabs = document.querySelectorAll("#roleTabs button");
+  let role = "Health Worker";
+  tabs.forEach(b => b.onclick = () => { tabs.forEach(x=>x.classList.remove("active")); b.classList.add("active"); role = b.dataset.role; });
+
+  document.getElementById("togglePass").onclick = (e) => {
+    const i = document.getElementById("pass");
+    i.type = i.type === "password" ? "text" : "password";
+    e.target.classList.toggle("fa-eye"); e.target.classList.toggle("fa-eye-slash");
+  };
+
+  document.getElementById("forgot").onclick = (e) => { e.preventDefault(); alert("A password reset link would be sent to your registered email."); };
+
+  document.getElementById("loginForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const user = document.getElementById("user").value.trim();
+    const name = user.split(/[.\s_]/).map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") || "Demo User";
+    localStorage.setItem("vs_session", JSON.stringify({ user, name, role, loginAt: Date.now() }));
+    window.location.href = "dashboard.html";
+  });
+</script>
+</body>
+</html>

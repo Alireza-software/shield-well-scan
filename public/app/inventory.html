@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vaccine Inventory — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "inventory.html",
+  title: "Vaccine Inventory & Warehouse",
+  subtitle: "Stock levels, batch tracking, FIFO rotation and expiry monitoring",
+  actions: `<button class="btn btn-ghost"><i class="fa-solid fa-file-arrow-down"></i> Export</button>
+            <button class="btn btn-primary" onclick="document.getElementById('addStock').scrollIntoView({behavior:'smooth'})"><i class="fa-solid fa-plus"></i> Add Stock</button>`
+});
+
+const inv = VS.getInventory();
+const total = inv.reduce((s,v)=>s+v.qty,0);
+const reserved = Math.floor(total*0.12);
+const today = new Date();
+const expired = inv.filter(v=> new Date(v.exp) < today).reduce((s,v)=>s+v.qty,0);
+const low = inv.filter(v=>v.qty<300).length;
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-4">
+    <div class="stat fade-up"><div class="ic blue"><i class="fa-solid fa-boxes-stacked"></i></div>
+      <div><div class="label">Total Stock</div><div class="value">${total.toLocaleString()}</div><div class="trend up">All warehouses</div></div></div>
+    <div class="stat fade-up delay-1"><div class="ic green"><i class="fa-solid fa-circle-check"></i></div>
+      <div><div class="label">Available</div><div class="value">${(total-reserved).toLocaleString()}</div><div class="trend up">Ready to dispatch</div></div></div>
+    <div class="stat fade-up delay-2"><div class="ic amber"><i class="fa-solid fa-clock"></i></div>
+      <div><div class="label">Reserved</div><div class="value">${reserved.toLocaleString()}</div><div class="trend">Allocated to campaigns</div></div></div>
+    <div class="stat fade-up delay-3"><div class="ic red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div><div class="label">Expired / Low</div><div class="value">${expired + low}</div><div class="trend down">Needs attention</div></div></div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:18px">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Stock by Vaccine Category</h3><small>Live</small></div>
+      <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+    </div>
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Inventory Consumption</h3><small>Last 14 days</small></div>
+      <div class="chart-wrap"><canvas id="consChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Batches & Expiry</h3><small>FIFO rotation</small></div>
+    <div style="overflow:auto">
+      <table class="data">
+        <thead><tr><th>Code</th><th>Vaccine</th><th>Batch</th><th>Mfg</th><th>Expiry</th><th>Quantity</th><th>Stock Level</th><th>Status</th></tr></thead>
+        <tbody>
+        ${inv.map(v=>{
+          const exp = new Date(v.exp);
+          const daysLeft = Math.floor((exp - today)/(1000*60*60*24));
+          const status = daysLeft<0 ? ["red","Expired"] : daysLeft<90 ? ["amber",`Expires in ${daysLeft}d`] : ["green","Healthy"];
+          const pct = Math.min(100, (v.qty/1500)*100);
+          const pcls = v.qty<100?"red":v.qty<300?"amber":v.qty<800?"":"green";
+          return `<tr><td><b>${v.code}</b></td><td>${v.name}</td><td>${v.batch}</td><td>${v.mfg}</td><td>${v.exp}</td>
+            <td><b>${v.qty}</b></td>
+            <td style="min-width:160px"><div class="progress ${pcls}"><span style="width:${pct}%"></span></div></td>
+            <td><span class="badge ${status[0]}">${status[1]}</span></td></tr>`;
+        }).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card fade-up" id="addStock" style="margin-top:18px">
+    <div class="card-title"><h3>Add New Stock</h3></div>
+    <form id="stockForm" class="form-grid">
+      <div class="form-row"><label>Vaccine</label>
+        <select name="code">${inv.map(v=>`<option value="${v.code}">${v.name}</option>`).join("")}</select>
+      </div>
+      <div class="form-row"><label>Batch Number</label><input name="batch" required /></div>
+      <div class="form-row"><label>Quantity</label><input name="qty" type="number" min="1" required /></div>
+      <div class="form-row"><label>Expiry Date</label><input name="exp" type="date" required /></div>
+      <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px">
+        <button type="reset" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add to Inventory</button>
+      </div>
+    </form>
+  </div>
+`;
+
+new Chart(catChart, { type:"bar", data:{
+  labels: inv.map(v=>v.code),
+  datasets:[{ label:"Quantity", data: inv.map(v=>v.qty), backgroundColor:["#2563eb","#10b981","#7c3aed","#f59e0b","#06b6d4","#ef4444","#0ea5e9","#64748b"], borderRadius:8 }]
+}, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"rgba(148,163,184,.15)"}},x:{grid:{display:false}}}}});
+
+new Chart(consChart, { type:"line", data:{
+  labels: Array.from({length:14},(_,i)=>`D-${13-i}`),
+  datasets:[{ label:"Doses used", data:[420,510,480,560,610,590,640,720,680,710,750,820,790,842], borderColor:"#2563eb", backgroundColor:"rgba(37,99,235,.12)", fill:true, tension:.4 }]
+}, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,grid:{color:"rgba(148,163,184,.15)"}},x:{grid:{display:false}}}}});
+
+document.getElementById("stockForm").onsubmit = (e) => {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target));
+  const list = VS.getInventory();
+  const item = list.find(v=>v.code===fd.code);
+  if (item) {
+    item.qty += parseInt(fd.qty,10);
+    item.batch = fd.batch; item.exp = fd.exp;
+    VS.saveInventory(list);
+    VS.logActivity(`Stock added: ${item.name} +${fd.qty} (Batch ${fd.batch})`, "info");
+    VS.toast("Stock updated successfully", "success");
+    setTimeout(()=>location.reload(), 600);
+  }
+};
+</script>
+</body>
+</html>

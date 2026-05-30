@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QR / Barcode Scanner — VaccineShield Pro</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="assets/js/app.js"></script>
+</head>
+<body>
+<script>
+VS.renderShell({
+  active: "scanner.html",
+  title: "QR & Barcode Scanner",
+  subtitle: "Authenticate vaccines, verify batches, instant lookup",
+});
+
+const inv = VS.getInventory();
+
+document.getElementById("pageBody").innerHTML = `
+  <div class="grid grid-2">
+    <div class="card fade-up">
+      <div class="card-title"><h3>Scanner</h3><small>Simulated</small></div>
+      <div class="scanner-stage">
+        <div class="frame"><div class="laser"></div></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <select id="simScan" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface)">
+          ${inv.map(v=>`<option value="${v.code}">${v.batch} — ${v.name}</option>`).join("")}
+        </select>
+        <button class="btn btn-primary" id="scanBtn"><i class="fa-solid fa-qrcode"></i> Scan</button>
+      </div>
+    </div>
+
+    <div class="card fade-up delay-1">
+      <div class="card-title"><h3>Scan Result</h3><span class="badge gray" id="resStatus">Awaiting scan</span></div>
+      <div id="scanResult">
+        <div style="text-align:center;padding:40px 20px;color:var(--text-muted)">
+          <i class="fa-solid fa-barcode" style="font-size:64px;opacity:.3;margin-bottom:12px;display:block"></i>
+          Scan a QR or barcode to view vaccine details
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Generate Vaccine QR Codes</h3><small>For inventory labels</small></div>
+    <div class="grid grid-4" id="qrGrid"></div>
+  </div>
+
+  <div class="card fade-up" style="margin-top:18px">
+    <div class="card-title"><h3>Recent Scan History</h3></div>
+    <table class="data">
+      <thead><tr><th>Time</th><th>Batch</th><th>Vaccine</th><th>Result</th></tr></thead>
+      <tbody id="histTbody"></tbody>
+    </table>
+  </div>
+`;
+
+const today = new Date();
+function doScan(code) {
+  const v = inv.find(x=>x.code===code); if (!v) return;
+  const exp = new Date(v.exp);
+  const ok = exp > today && v.qty > 0;
+  document.getElementById("resStatus").className = `badge ${ok?'green':'red'}`;
+  document.getElementById("resStatus").textContent = ok ? "Authentic & Valid" : "Expired / Out of Stock";
+  document.getElementById("scanResult").innerHTML = `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:10px">
+      <div id="qrHere" style="background:white;padding:10px;border-radius:10px"></div>
+      <div>
+        <div style="font-family:Poppins;font-size:20px;font-weight:700">${v.name}</div>
+        <div style="color:var(--text-muted);margin-bottom:12px">${v.disease}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+          <div><small style="color:var(--text-muted)">Batch No</small><div><b>${v.batch}</b></div></div>
+          <div><small style="color:var(--text-muted)">Quantity</small><div><b>${v.qty}</b></div></div>
+          <div><small style="color:var(--text-muted)">Mfg Date</small><div>${v.mfg}</div></div>
+          <div><small style="color:var(--text-muted)">Expiry</small><div>${v.exp}</div></div>
+        </div>
+      </div>
+    </div>`;
+  QRCode.toCanvas(document.createElement("canvas"), v.batch, {width:120, margin:0}, (e,c)=>{ if(!e) document.getElementById("qrHere").appendChild(c); });
+  const hist = JSON.parse(localStorage.getItem("vs_scans")||"[]");
+  hist.unshift({time:Date.now(), batch:v.batch, name:v.name, ok});
+  localStorage.setItem("vs_scans", JSON.stringify(hist.slice(0,20)));
+  renderHistory();
+  VS.logActivity(`Scanned batch ${v.batch} — ${ok?'verified':'flagged'}`, ok?"success":"warn");
+}
+
+function renderHistory() {
+  const hist = JSON.parse(localStorage.getItem("vs_scans")||"[]");
+  document.getElementById("histTbody").innerHTML = hist.length ? hist.map(h=>`
+    <tr><td>${VS.fmtTime(h.time)}</td><td><b>${h.batch}</b></td><td>${h.name}</td>
+    <td><span class="badge ${h.ok?'green':'red'}">${h.ok?'Verified':'Flagged'}</span></td></tr>`).join("")
+    : `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No scans yet</td></tr>`;
+}
+
+document.getElementById("scanBtn").onclick = () => doScan(document.getElementById("simScan").value);
+
+// QR grid
+const grid = document.getElementById("qrGrid");
+inv.forEach(v=>{
+  const cell = document.createElement("div");
+  cell.className = "card";
+  cell.style.cssText = "text-align:center;padding:14px";
+  cell.innerHTML = `<div id="qr-${v.code}" style="background:white;padding:8px;border-radius:8px;display:inline-block"></div>
+    <div style="font-weight:600;margin-top:8px;font-size:13px">${v.name}</div>
+    <small style="color:var(--text-muted)">${v.batch}</small>`;
+  grid.appendChild(cell);
+  QRCode.toCanvas(document.createElement("canvas"), v.batch, {width:120, margin:0}, (e,c)=>{ if(!e) document.getElementById(`qr-${v.code}`).appendChild(c); });
+});
+renderHistory();
+</script>
+</body>
+</html>
